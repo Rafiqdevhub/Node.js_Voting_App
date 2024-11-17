@@ -20,10 +20,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  aadharCardNumber: {
+  CNIC: {
     type: Number,
     required: true,
-    unqiue: true,
+    unique: true,
   },
   password: {
     type: String,
