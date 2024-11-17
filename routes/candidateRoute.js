@@ -7,7 +7,7 @@ const {
   votingCounting,
   getAllCandidate,
 } = require("../controllers/candidateController");
-const { jwtAuthMiddleware } = require("../midddleware/jwt");
+const { jwtAuthMiddleware } = require("../middleware/jwt");
 
 const router = express.Router();
 

@@ -1,4 +1,4 @@
-const { generateToken } = require("../midddleware/jwt");
+const { generateToken } = require("../middleware/jwt");
 const User = require("../models/userModel");
 
 const signUp = async (req, res) => {

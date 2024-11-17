@@ -5,7 +5,7 @@ const {
   profile,
   profilePassword,
 } = require("../controllers/userController");
-const { jwtAuthMiddleware } = require("../midddleware/jwt");
+const { jwtAuthMiddleware } = require("../middleware/jwt");
 
 const router = express.Router();
 
