@@ -10,10 +10,11 @@ const signUp = async (req, res) => {
       return res.status(400).json({ error: "Admin user already exists" });
     }
 
-    if (!/^\d{13}$/.test(data.CNIC)) {
-      return res
-        .status(400)
-        .json({ error: "CNIC Card Number must be exactly 13 digits" });
+    if (!/^\d{5}-\d{6}-\d{1}$/.test(data.CNIC)) {
+      return res.status(400).json({
+        error:
+          "CNIC Card Number must be 13 digits and in the format XXXXX-XXXXXX-X",
+      });
     }
 
     const existingUser = await User.findOne({
