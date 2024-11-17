@@ -5,7 +5,9 @@ const checkAdminRole = require("../utils/checkAdminRole");
 const addCandidate = async (req, res) => {
   try {
     if (!(await checkAdminRole(req.user.id)))
-      return res.status(403).json({ message: "user does not have admin role" });
+      return res
+        .status(403)
+        .json({ message: "Admin and Govt employee is not allowed to vote" });
 
     const data = req.body;
 
@@ -83,8 +85,10 @@ const voting = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "user not found" });
     }
-    if (user.role == "admin") {
-      return res.status(403).json({ message: "admin is not allowed" });
+    if (user.role == "admin" || user.role == "govtEmployee") {
+      return res
+        .status(403)
+        .json({ message: "Admin and Govt employee is not allowed to vote" });
     }
     if (user.isVoted) {
       return res.status(400).json({ message: "You have already voted" });
