@@ -29,12 +29,10 @@ const signUp = async (req, res) => {
     const newUser = new User(data);
 
     const response = await newUser.save();
-    console.log("data saved");
 
     const payload = {
       id: response.id,
     };
-    console.log(JSON.stringify(payload));
     const token = generateToken(payload);
 
     res.status(200).json({ response: response, token: token });
@@ -54,7 +52,7 @@ const Login = async (req, res) => {
         .json({ error: "CNIC Card Number and password are required" });
     }
 
-    const user = await User.findOne({ CNIC: CNIC });
+    const user = await User.findOne({ CNIC });
 
     if (!user || !(await user.comparePassword(password))) {
       return res

@@ -14,7 +14,6 @@ const addCandidate = async (req, res) => {
     const newCandidate = new Candidate(data);
 
     const response = await newCandidate.save();
-    console.log("data saved");
     res.status(200).json({ response: response });
   } catch (err) {
     console.log(err);
@@ -63,7 +62,6 @@ const deleteCandidateById = async (req, res) => {
       return res.status(404).json({ error: "Candidate not found" });
     }
 
-    console.log("candidate deleted");
     res.status(200).json(response);
   } catch (err) {
     console.log(err);
