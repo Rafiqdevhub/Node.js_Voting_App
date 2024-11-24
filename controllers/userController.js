@@ -17,12 +17,18 @@ const signUp = async (req, res) => {
       });
     }
 
+    if (!/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(data.email)) {
+      return res.status(400).json({
+        error: `${data.email} is not a valid email address!`,
+      });
+    }
+
     const existingUser = await User.findOne({
       CNIC: data.CNIC,
     });
     if (existingUser) {
       return res.status(400).json({
-        error: "User with the same CNIC Card Number already exists",
+        error: `User   with  ${data.CNIC} CNIC Card Number already exists`,
       });
     }
 
