@@ -16,7 +16,7 @@ const candidateSchema = new mongoose.Schema({
   votes: [
     {
       user: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId, // ObjectId referencing the User who voted
         ref: "User",
         required: true,
       },
