@@ -1,0 +1,252 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: voting-app
+  NODE_VERSION: '20.x'
+
+jobs:
+  # Lint and Test Job
+  test:
+    name: 🧪 Test and Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 🔍 Run linting
+      run: |
+        # Add these scripts to your package.json if not present
+        echo "⚠️  Linting skipped - add 'lint' script to package.json"
+        # npm run lint
+        
+    - name: 🧪 Run tests
+      run: |
+        # Add test script to package.json if not present  
+        echo "⚠️  Tests skipped - add 'test' script to package.json"
+        # npm test
+      env:
+        NODE_ENV: test
+        MONGODB_URL_LOCAL: mongodb://localhost:27017/voting_db_test
+        JWT_SECRET: test-jwt-secret-key
+
+  # Security Scan Job
+  security:
+    name: 🔐 Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 🔍 Run security audit
+      run: npm audit --audit-level moderate
+      
+    - name: 🛡️ Run Snyk security scan
+      uses: snyk/actions/node@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+
+  # Build and Push Docker Image
+  build:
+    name: 🐳 Build and Push Image
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🐳 Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        platforms: linux/amd64,linux/arm64
+        
+    - name: 🔑 Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        
+    - name: 🏷️ Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=raw,value=prod-{{date 'YYYYMMDD-HHmmss'}},enable={{is_default_branch}}
+        labels: |
+          org.opencontainers.image.title=Voting Application
+          org.opencontainers.image.description=Node.js Voting Application
+          org.opencontainers.image.vendor=DevOps Team
+          
+    - name: 🔨 Build and push image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: 📝 Generate build summary
+      run: |
+        echo "## 🐳 Docker Image Built Successfully" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Image Tags:**" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Image Digest:** \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # Deploy to Staging
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment: staging
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Configure kubectl
+      uses: azure/k8s-set-context@v3
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBE_CONFIG_STAGING }}
+        
+    - name: 🔄 Update image tags in manifests
+      run: |
+        sed -i 's|your-registry/voting-app:latest|${{ needs.build.outputs.image-tag }}|g' k8s/05-voting-app.yaml
+        
+    - name: 🚀 Deploy to staging
+      run: |
+        kubectl apply -f k8s/ -n voting-app-staging
+        kubectl rollout status deployment/voting-app -n voting-app-staging --timeout=300s
+        
+    - name: ✅ Verify deployment
+      run: |
+        kubectl get pods -n voting-app-staging
+        kubectl get services -n voting-app-staging
+
+  # Deploy to Production
+  deploy-production:
+    name: 🎯 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment: production
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Configure kubectl
+      uses: azure/k8s-set-context@v3
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBE_CONFIG_PRODUCTION }}
+        
+    - name: 🔄 Update image tags in manifests
+      run: |
+        sed -i 's|your-registry/voting-app:latest|${{ needs.build.outputs.image-tag }}|g' k8s/05-voting-app.yaml
+        
+    - name: 🚀 Deploy to production
+      run: |
+        kubectl apply -f k8s/ -n voting-app
+        kubectl rollout status deployment/voting-app -n voting-app --timeout=300s
+        
+    - name: ✅ Verify deployment
+      run: |
+        kubectl get pods -n voting-app
+        kubectl get services -n voting-app
+        
+    - name: 📊 Generate deployment summary
+      run: |
+        echo "## 🎯 Production Deployment Completed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Environment:** Production" >> $GITHUB_STEP_SUMMARY
+        echo "**Image:** \`${{ needs.build.outputs.image-tag }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Digest:** \`${{ needs.build.outputs.image-digest }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Deployed at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+
+  # Post-deployment health check
+  health-check:
+    name: 🏥 Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always() && (needs.deploy-staging.result == 'success' || needs.deploy-production.result == 'success')
+    
+    steps:
+    - name: 🏥 Check application health
+      run: |
+        # Add your health check URLs here
+        HEALTH_URL="https://your-app-domain.com/health"
+        
+        echo "Checking application health..."
+        for i in {1..5}; do
+          if curl -f -s "$HEALTH_URL" > /dev/null; then
+            echo "✅ Health check passed"
+            exit 0
+          else
+            echo "⏳ Health check attempt $i failed, retrying..."
+            sleep 30
+          fi
+        done
+        
+        echo "❌ Health check failed after 5 attempts"
+        exit 1

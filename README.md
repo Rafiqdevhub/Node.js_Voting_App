@@ -1,76 +1,279 @@
-# Voting APP
+# Voting Application - Docker Setup
 
-This is a backend application for a voting system where users can vote for candidates. It provides functionalities for user authentication, candidate management, and voting.
+A modern voting application built with Node.js, Express.js, and MongoDB, featuring Docker containerization for both development and production environments.
 
-## Features
+## 🏗️ Architecture Overview
 
-- User sign up and login with CNIC-Card Number and password
-- User can view the list of candidates
-- User can vote for a candidate (only once)
-- Admin can manage candidates (add, update, delete)
-- Admin cannot vote and Govt employee
+- **Development Environment**: Uses local MongoDB container
+- **Production Environment**: Uses MongoDB Cloud (Atlas) or external MongoDB service
+- **Application**: Node.js with Express.js framework
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT-based authentication
 
-## Technologies Used
+## 📋 Prerequisites
 
-- Node.js
-- Express.js
-- MongoDB
-- JSON Web Tokens (JWT) for authentication
+- [Docker](https://www.docker.com/get-started) (version 20.0+)
+- [Docker Compose](https://docs.docker.com/compose/install/) (version 2.0+)
+- [Node.js](https://nodejs.org/) (version 18+) - only for local development without Docker
+- [Git](https://git-scm.com/) for version control
 
-## Installation
+## 🚀 Quick Start
 
-1. Clone the repository:
+### 1. Clone the Repository
 
-   ```bash
-   git clone https://github.com/Rafiqdevhub/Node.js_Voting_App.git
-   ```
+```bash
+git clone <your-repository-url>
+cd voiting_app
+```
 
-# API Endpoints
+### 2. Development Environment Setup
 
-## Authentication
+#### Start Development Environment
+```bash
+# Start all services (MongoDB + App) for development
+npm run dev:up
 
-### Sign Up
+# Or manually with docker-compose
+docker-compose -f docker-compose.dev.yml --env-file .env.development up -d
+```
 
-- `POST /signup`: Sign up a user
+#### View Development Services
+- **Application**: http://localhost:5000
+- **Health Check**: http://localhost:5000/health
+- **MongoDB Admin (Mongo Express)**: http://localhost:8081
+  - Username: `admin`
+  - Password: `password123`
 
-### Login
+#### Development Test Credentials
+```
+Admin User:
+- Email: admin@votingapp.com
+- Password: admin123
 
-- `POST /login`: Login a user
+Test Voters:
+- Email: voter1@example.com, voter2@example.com
+- Password: voter123
+```
 
-## Candidates
+#### Stop Development Environment
+```bash
+npm run dev:down
+```
 
-### Get Candidates
+### 3. Production Environment Setup
 
-- `GET /candidates`: Get the list of candidates
+#### Configure Production Environment
+1. Copy the production environment template:
+```bash
+cp .env.production .env.production.local
+```
 
-### Add Candidate
+2. Edit `.env.production.local` and replace placeholders:
+```bash
+# Replace these with your actual MongoDB Cloud credentials
+DATABASE_URL=mongodb+srv://your-username:your-password@your-cluster.mongodb.net/voting_db?retryWrites=true&w=majority
+JWT_SECRET=your-super-secure-jwt-secret-key
+```
 
-- `POST /candidates`: Add a new candidate (Admin only)
+#### Start Production Environment
+```bash
+# Build and start production environment
+npm run prod:build
+npm run prod:up
 
-### Update Candidate
+# Or manually
+docker-compose -f docker-compose.prod.yml --env-file .env.production.local up -d
+```
 
-- `PUT /candidates/:id`: Update a candidate by ID (Admin only)
+## 📁 Project Structure
 
-### Delete Candidate
+```
+voiting_app/
+├── src/                          # Application source code
+│   ├── config/
+│   │   └── dbConnection.js       # Database configuration
+│   ├── controllers/              # Route controllers
+│   ├── middleware/               # Custom middleware
+│   ├── models/                   # Database models
+│   ├── routes/                   # API routes
+│   ├── utils/                    # Utility functions
+│   └── server.js                 # Application entry point
+├── scripts/
+│   └── init-mongo.js             # MongoDB initialization script
+├── docker-compose.dev.yml        # Development Docker Compose
+├── docker-compose.prod.yml       # Production Docker Compose
+├── Dockerfile                    # Multi-stage Docker build
+├── .env.development              # Development environment variables
+├── .env.production               # Production environment template
+└── package.json                  # Node.js dependencies and scripts
+```
 
-- `DELETE /candidates/:id`: Delete a candidate by ID (Admin only)
+## 🔧 Available Scripts
 
-## Voting
+### Development Scripts
+```bash
+npm run dev:up          # Start development environment
+npm run dev:down        # Stop development environment  
+npm run dev:build       # Rebuild development containers
+npm run dev:logs        # View development logs
+npm run dev:clean       # Clean up development volumes and containers
+```
 
-### Get Vote Count
+### Production Scripts
+```bash
+npm run prod:up         # Start production environment
+npm run prod:down       # Stop production environment
+npm run prod:build      # Rebuild production containers
+npm run prod:logs       # View production logs
+npm run prod:clean      # Clean up production volumes and containers
+npm run prod:nginx      # Start with NGINX reverse proxy
+```
 
-- `GET /candidates/vote/count`: Get the count of votes for each candidate
+### Utility Scripts
+```bash
+npm run env:copy-dev    # Copy dev environment to .env
+npm run env:copy-prod   # Copy prod environment to .env
+npm run health-check    # Check application health
+```
 
-### Vote for Candidate
+## 🌍 Environment Variables
 
-- `POST /candidates/vote/:id`: Vote for a candidate (User only)
+### Development (.env.development)
+```bash
+NODE_ENV=development
+DATABASE_URL=mongodb://admin:password123@mongodb:27017/voting_db?authSource=admin
+JWT_SECRET=dev-jwt-secret-key-not-for-production
+JWT_EXPIRY=30000
+MONGO_DB_NAME=voting_db
+MONGO_ROOT_USERNAME=admin
+MONGO_ROOT_PASSWORD=password123
+```
 
-## User Profile
+### Production (.env.production)
+```bash
+NODE_ENV=production
+DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/voting_db?retryWrites=true&w=majority
+JWT_SECRET={{PRODUCTION_JWT_SECRET}}
+JWT_EXPIRY=3600
+```
 
-### Get Profile
+## 🔒 Security Considerations
 
-- `GET /users/profile`: Get user profile information
+### Development
+- Uses weak credentials for convenience
+- Debug logging enabled
+- MongoDB admin interface exposed
 
-### Change Password
+### Production
+- **CRITICAL**: Generate secure JWT secret: `openssl rand -base64 32`
+- Use strong MongoDB credentials
+- Disable debug logging
+- Enable HTTPS (via NGINX proxy)
+- Regular security updates
 
-- `PUT /users/profile/password`: Change user password
+## 🗄️ Database Setup
+
+### Development Database
+- Automatically initialized with sample data
+- Local MongoDB container with persistent volume
+- Admin interface available via Mongo Express
+
+### Production Database
+1. Set up MongoDB Atlas or cloud provider
+2. Configure network access (whitelist IPs)
+3. Create database user with appropriate permissions
+4. Update `DATABASE_URL` in production environment
+
+## 📊 Monitoring and Health Checks
+
+### Health Check Endpoints
+- `GET /health` - Application health status
+- `GET /ready` - Readiness probe
+- `GET /metrics` - Basic application metrics
+
+### Docker Health Checks
+Both development and production containers include built-in health checks that monitor:
+- Application responsiveness
+- Database connectivity
+- Memory usage
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### MongoDB Connection Failed
+```bash
+# Check if MongoDB container is running
+docker ps | grep mongodb
+
+# Check MongoDB logs
+docker logs voting-mongodb-dev
+
+# Verify connection string
+echo $DATABASE_URL
+```
+
+#### Port Already in Use
+```bash
+# Find process using port 5000
+netstat -tlnp | grep :5000
+
+# Stop existing containers
+npm run dev:clean
+npm run prod:clean
+```
+
+#### Application Won't Start
+```bash
+# Check application logs
+npm run dev:logs
+
+# Rebuild containers
+npm run dev:build
+```
+
+### Development Debugging
+```bash
+# Connect to running container
+docker exec -it voting-app-dev sh
+
+# View environment variables
+docker exec -it voting-app-dev env
+
+# Check MongoDB directly
+docker exec -it voting-mongodb-dev mongosh -u admin -p password123 --authenticationDatabase admin
+```
+
+## 🚀 API Endpoints
+
+### Authentication
+- `POST /api/users/signup` - User registration
+- `POST /api/users/login` - User login
+
+### Candidates
+- `GET /api/candidates` - Get all candidates
+- `POST /api/candidates` - Add candidate (Admin only)
+- `PUT /api/candidates/:id` - Update candidate (Admin only)
+- `DELETE /api/candidates/:id` - Delete candidate (Admin only)
+- `GET /api/candidates/vote/count` - Get vote counts
+- `POST /api/candidates/vote/:id` - Vote for candidate
+
+### User Profile
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile/password` - Change password
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make changes in development environment
+4. Test thoroughly
+5. Submit a pull request
+
+## 📝 License
+
+This project is licensed under the ISC License.
+
+---
+
+**Note**: Always use strong credentials and proper security measures in production environments. The development configuration is designed for convenience and should never be used in production.

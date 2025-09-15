@@ -2,9 +2,35 @@
   "name": "voting_app",
   "version": "1.0.0",
   "description": "",
-  "main": "sever.js",
+  "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:watch": "npm test -- --watch",
+    "lint": "echo \"Linting not configured - install ESLint\"",
+    "lint:fix": "echo \"Linting not configured - install ESLint\"",
+    "format": "echo \"Formatting not configured - install Prettier\"",
+    "format:check": "echo \"Formatting not configured - install Prettier\"",
+    "build": "echo \"Build step not required for Node.js app\"",
+    "health-check": "curl -f http://localhost:5000/health || exit 1",
+    "docker:build": "docker build -t voting-app:latest .",
+    "docker:run": "docker run -p 5000:5000 --env-file .env voting-app:latest",
+    "dev:up": "docker-compose -f docker-compose.dev.yml --env-file .env.development up -d",
+    "dev:down": "docker-compose -f docker-compose.dev.yml down",
+    "dev:build": "docker-compose -f docker-compose.dev.yml --env-file .env.development build",
+    "dev:logs": "docker-compose -f docker-compose.dev.yml logs -f",
+    "dev:clean": "docker-compose -f docker-compose.dev.yml down -v --remove-orphans",
+    "prod:up": "docker-compose -f docker-compose.prod.yml --env-file .env.production up -d",
+    "prod:down": "docker-compose -f docker-compose.prod.yml down",
+    "prod:build": "docker-compose -f docker-compose.prod.yml --env-file .env.production build",
+    "prod:logs": "docker-compose -f docker-compose.prod.yml logs -f",
+    "prod:clean": "docker-compose -f docker-compose.prod.yml down -v --remove-orphans",
+    "prod:nginx": "docker-compose -f docker-compose.prod.yml --profile with-nginx --env-file .env.production up -d",
+    "env:copy-dev": "copy .env.development .env",
+    "env:copy-prod": "copy .env.production .env",
+    "k8s:deploy": "./deploy/deploy.sh",
+    "deploy": "sh deploy.sh"
   },
   "keywords": [],
   "author": "",
@@ -16,5 +42,8 @@
     "express": "^4.21.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
   }
 }

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: voting-app-service
+  labels:
+    app: voting-app
+spec:
+  selector:
+    app: voting-app
+  ports:
+    - protocol: TCP
+      port: 5000 # Service port
+      targetPort: 5000 # Container port
+  type: NodePort # change to LoadBalancer if running in cloud

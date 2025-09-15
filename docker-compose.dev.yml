@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # MongoDB Database Service (Development Only)
+  mongodb:
+    image: mongo:7.0-jammy
+    container_name: voting-mongodb-dev
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - voting-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Mongo Express - MongoDB Admin Interface (Development Only)
+  mongo-express:
+    image: mongo-express:1.0-alpine
+    container_name: voting-mongo-express-dev
+    restart: unless-stopped
+    ports:
+      - "${MONGO_EXPRESS_PORT:-8081}:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD}
+      ME_CONFIG_MONGODB_SERVER: mongodb
+    networks:
+      - voting-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # Voting Application Service
+  voting-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: voting-app-dev
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY: ${JWT_EXPIRY}
+      PORT: 5000
+      DEBUG: ${DEBUG}
+      LOG_LEVEL: ${LOG_LEVEL}
+    volumes:
+      # Mount source code for development (hot reload)
+      - ./src:/app/src:ro
+      # Mount package.json for dependency changes
+      - ./package.json:/app/package.json:ro
+    networks:
+      - voting-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    command: ["dumb-init", "--", "npm", "run", "dev"]
+
+volumes:
+  mongodb_data:
+    driver: local
+    name: voting-mongodb-dev-data
+
+networks:
+  voting-network:
+    driver: bridge
+    name: voting-network-dev
