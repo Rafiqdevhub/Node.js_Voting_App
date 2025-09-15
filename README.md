@@ -1,6 +1,10 @@
 # Voting Application - Docker Setup
 
-A modern voting application built with Node.js, Express.js, and MongoDB, featuring Docker containerization for both development and production environments.
+[![Docker Build & Push](https://github.com/Rafiqdevhub/Node.js_Voting_App/actions/workflows/docker-build.yaml/badge.svg)](https://github.com/Rafiqdevhub/Node.js_Voting_App/actions/workflows/docker-build.yaml)
+[![Docker Hub](https://img.shields.io/docker/pulls/rafiq9323/voting-app?style=flat-square&logo=docker)](https://hub.docker.com/r/rafiq9323/voting-app)
+[![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
+
+A modern voting application built with Node.js, Express.js, and MongoDB, featuring Docker containerization, CI/CD pipeline, and Kubernetes deployment for both development and production environments.
 
 ## 🏗️ Architecture Overview
 
@@ -29,6 +33,7 @@ cd voiting_app
 ### 2. Development Environment Setup
 
 #### Start Development Environment
+
 ```bash
 # Start all services (MongoDB + App) for development
 npm run dev:up
@@ -38,6 +43,7 @@ docker-compose -f docker-compose.dev.yml --env-file .env.development up -d
 ```
 
 #### View Development Services
+
 - **Application**: http://localhost:5000
 - **Health Check**: http://localhost:5000/health
 - **MongoDB Admin (Mongo Express)**: http://localhost:8081
@@ -45,6 +51,7 @@ docker-compose -f docker-compose.dev.yml --env-file .env.development up -d
   - Password: `password123`
 
 #### Development Test Credentials
+
 ```
 Admin User:
 - Email: admin@votingapp.com
@@ -56,6 +63,7 @@ Test Voters:
 ```
 
 #### Stop Development Environment
+
 ```bash
 npm run dev:down
 ```
@@ -63,12 +71,15 @@ npm run dev:down
 ### 3. Production Environment Setup
 
 #### Configure Production Environment
+
 1. Copy the production environment template:
+
 ```bash
 cp .env.production .env.production.local
 ```
 
 2. Edit `.env.production.local` and replace placeholders:
+
 ```bash
 # Replace these with your actual MongoDB Cloud credentials
 DATABASE_URL=mongodb+srv://your-username:your-password@your-cluster.mongodb.net/voting_db?retryWrites=true&w=majority
@@ -76,6 +87,7 @@ JWT_SECRET=your-super-secure-jwt-secret-key
 ```
 
 #### Start Production Environment
+
 ```bash
 # Build and start production environment
 npm run prod:build
@@ -111,15 +123,17 @@ voiting_app/
 ## 🔧 Available Scripts
 
 ### Development Scripts
+
 ```bash
 npm run dev:up          # Start development environment
-npm run dev:down        # Stop development environment  
+npm run dev:down        # Stop development environment
 npm run dev:build       # Rebuild development containers
 npm run dev:logs        # View development logs
 npm run dev:clean       # Clean up development volumes and containers
 ```
 
 ### Production Scripts
+
 ```bash
 npm run prod:up         # Start production environment
 npm run prod:down       # Stop production environment
@@ -130,6 +144,7 @@ npm run prod:nginx      # Start with NGINX reverse proxy
 ```
 
 ### Utility Scripts
+
 ```bash
 npm run env:copy-dev    # Copy dev environment to .env
 npm run env:copy-prod   # Copy prod environment to .env
@@ -139,6 +154,7 @@ npm run health-check    # Check application health
 ## 🌍 Environment Variables
 
 ### Development (.env.development)
+
 ```bash
 NODE_ENV=development
 DATABASE_URL=mongodb://admin:password123@mongodb:27017/voting_db?authSource=admin
@@ -150,6 +166,7 @@ MONGO_ROOT_PASSWORD=password123
 ```
 
 ### Production (.env.production)
+
 ```bash
 NODE_ENV=production
 DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/voting_db?retryWrites=true&w=majority
@@ -160,11 +177,13 @@ JWT_EXPIRY=3600
 ## 🔒 Security Considerations
 
 ### Development
+
 - Uses weak credentials for convenience
 - Debug logging enabled
 - MongoDB admin interface exposed
 
 ### Production
+
 - **CRITICAL**: Generate secure JWT secret: `openssl rand -base64 32`
 - Use strong MongoDB credentials
 - Disable debug logging
@@ -174,11 +193,13 @@ JWT_EXPIRY=3600
 ## 🗄️ Database Setup
 
 ### Development Database
+
 - Automatically initialized with sample data
 - Local MongoDB container with persistent volume
 - Admin interface available via Mongo Express
 
 ### Production Database
+
 1. Set up MongoDB Atlas or cloud provider
 2. Configure network access (whitelist IPs)
 3. Create database user with appropriate permissions
@@ -187,12 +208,15 @@ JWT_EXPIRY=3600
 ## 📊 Monitoring and Health Checks
 
 ### Health Check Endpoints
+
 - `GET /health` - Application health status
 - `GET /ready` - Readiness probe
 - `GET /metrics` - Basic application metrics
 
 ### Docker Health Checks
+
 Both development and production containers include built-in health checks that monitor:
+
 - Application responsiveness
 - Database connectivity
 - Memory usage
@@ -202,6 +226,7 @@ Both development and production containers include built-in health checks that m
 ### Common Issues
 
 #### MongoDB Connection Failed
+
 ```bash
 # Check if MongoDB container is running
 docker ps | grep mongodb
@@ -214,6 +239,7 @@ echo $DATABASE_URL
 ```
 
 #### Port Already in Use
+
 ```bash
 # Find process using port 5000
 netstat -tlnp | grep :5000
@@ -224,6 +250,7 @@ npm run prod:clean
 ```
 
 #### Application Won't Start
+
 ```bash
 # Check application logs
 npm run dev:logs
@@ -233,6 +260,7 @@ npm run dev:build
 ```
 
 ### Development Debugging
+
 ```bash
 # Connect to running container
 docker exec -it voting-app-dev sh
@@ -247,10 +275,12 @@ docker exec -it voting-mongodb-dev mongosh -u admin -p password123 --authenticat
 ## 🚀 API Endpoints
 
 ### Authentication
+
 - `POST /api/users/signup` - User registration
 - `POST /api/users/login` - User login
 
 ### Candidates
+
 - `GET /api/candidates` - Get all candidates
 - `POST /api/candidates` - Add candidate (Admin only)
 - `PUT /api/candidates/:id` - Update candidate (Admin only)
@@ -259,6 +289,7 @@ docker exec -it voting-mongodb-dev mongosh -u admin -p password123 --authenticat
 - `POST /api/candidates/vote/:id` - Vote for candidate
 
 ### User Profile
+
 - `GET /api/users/profile` - Get user profile
 - `PUT /api/users/profile/password` - Change password
 
@@ -273,6 +304,43 @@ docker exec -it voting-mongodb-dev mongosh -u admin -p password123 --authenticat
 ## 📝 License
 
 This project is licensed under the ISC License.
+
+## 🚀 CI/CD Pipeline
+
+This project includes automated CI/CD pipelines for seamless deployment:
+
+### Quick Deploy
+
+```bash
+# Build, push to Docker Hub, and deploy to Kubernetes
+npm run deploy
+
+# Or use the deployment script directly
+./deploy.sh
+```
+
+### Pipeline Features
+
+- **Automatic Docker builds** on push to main branch
+- **Multi-platform images** (linux/amd64, linux/arm64)
+- **Docker Hub integration** with automated pushing
+- **Kubernetes deployment** with health checks
+- **Security scanning** and testing
+
+### Docker Hub
+
+- **Repository**: [rafiq9323/voting-app](https://hub.docker.com/r/rafiq9323/voting-app)
+- **Tags**: `latest`, `develop`, date-based tags
+- **Pull command**: `docker pull rafiq9323/voting-app:latest`
+
+### Setup CI/CD
+
+1. Set `DOCKER_PASSWORD` secret in GitHub repository settings
+2. Push to main branch to trigger pipeline
+3. Check GitHub Actions for build status
+4. Access your app via Kubernetes NodePort
+
+For detailed CI/CD setup instructions, see [CI-CD-SETUP.md](CI-CD-SETUP.md).
 
 ---
 
